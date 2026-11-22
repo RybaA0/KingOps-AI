@@ -1,10 +1,12 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { login, register } from "../api";
 import { useAuth } from "../auth";
-import { C } from "../theme";
+import { type Colors, useTheme } from "../theme";
 
 export default function AuthScreen() {
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   const { setUser } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
@@ -31,72 +33,68 @@ export default function AuthScreen() {
     } finally { setBusy(false); }
   };
 
-  return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: C.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
-        <Text style={styles.logo}>King<Text style={{ color: C.violet }}>Ai</Text></Text>
-        <Text style={styles.sub}>Asystent AI od KingOps</Text>
+  const Field = ({ label, children }: { label: string; children: ReactNode }) => (
+    <View style={{ width: "100%", marginBottom: 12 }}><Text style={s.lbl}>{label}</Text>{children}</View>
+  );
 
-        <View style={styles.switch}>
+  return (
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
+        <Text style={s.logo}>King<Text style={{ color: c.accent }}>Ai</Text></Text>
+        <Text style={s.sub}>Asystent AI od KingOps</Text>
+
+        <View style={s.switch}>
           {(["login", "register"] as const).map((m) => (
-            <Pressable key={m} style={[styles.switchBtn, mode === m && styles.switchOn]} onPress={() => { setMode(m); setError(""); setInfo(""); }}>
-              <Text style={[styles.switchTxt, { color: mode === m ? C.text : C.sub }]}>{m === "login" ? "Logowanie" : "Rejestracja"}</Text>
+            <Pressable key={m} style={[s.switchBtn, mode === m && s.switchOn]} onPress={() => { setMode(m); setError(""); setInfo(""); }}>
+              <Text style={[s.switchTxt, { color: mode === m ? c.text : c.sub }]}>{m === "login" ? "Logowanie" : "Rejestracja"}</Text>
             </Pressable>
           ))}
         </View>
 
         {mode === "register" && (
           <Field label="Imię lub nick (opcjonalnie)">
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Jan" placeholderTextColor={C.faint} autoCapitalize="words" />
+            <TextInput style={s.input} value={name} onChangeText={setName} placeholder="Jan" placeholderTextColor={c.faint} autoCapitalize="words" />
           </Field>
         )}
         <Field label="E-mail">
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="ty@przyklad.pl" placeholderTextColor={C.faint} autoCapitalize="none" keyboardType="email-address" autoCorrect={false} />
+          <TextInput style={s.input} value={email} onChangeText={setEmail} placeholder="ty@przyklad.pl" placeholderTextColor={c.faint} autoCapitalize="none" keyboardType="email-address" autoCorrect={false} />
         </Field>
         <Field label="Hasło">
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="••••••••" placeholderTextColor={C.faint} secureTextEntry />
+          <TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="••••••••" placeholderTextColor={c.faint} secureTextEntry />
         </Field>
         {mode === "register" && (
           <Field label="Powtórz hasło">
-            <TextInput style={styles.input} value={confirm} onChangeText={setConfirm} placeholder="••••••••" placeholderTextColor={C.faint} secureTextEntry />
+            <TextInput style={s.input} value={confirm} onChangeText={setConfirm} placeholder="••••••••" placeholderTextColor={c.faint} secureTextEntry />
           </Field>
         )}
 
-        {!!error && <Text style={styles.error}>{error}</Text>}
-        {!!info && <Text style={styles.info}>{info}</Text>}
+        {!!error && <Text style={s.error}>{error}</Text>}
+        {!!info && <Text style={s.info}>{info}</Text>}
 
-        <Pressable style={[styles.primary, busy && { opacity: 0.6 }]} onPress={submit} disabled={busy}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryTxt}>{mode === "login" ? "Zaloguj" : "Załóż konto"}</Text>}
+        <Pressable style={[s.primary, busy && { opacity: 0.6 }]} onPress={submit} disabled={busy}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Text style={s.primaryTxt}>{mode === "login" ? "Zaloguj" : "Załóż konto"}</Text>}
         </Pressable>
 
-        <Text style={styles.footer}>To samo konto co na ai.kingops.eu — historia rozmów jest wspólna.</Text>
+        <Text style={s.footer}>To samo konto co na ai.kingops.eu — historia rozmów jest wspólna.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <View style={{ width: "100%", marginBottom: 12 }}>
-      <Text style={styles.lbl}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  wrap: { flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 24, gap: 4 },
-  logo: { fontSize: 34, fontWeight: "800", color: C.text, marginTop: 24 },
-  sub: { color: C.sub, marginBottom: 20 },
-  switch: { flexDirection: "row", backgroundColor: C.card, borderRadius: 12, padding: 4, marginBottom: 16, width: "100%" },
-  switchBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: "center" },
-  switchOn: { backgroundColor: C.violetSoft },
-  switchTxt: { fontWeight: "600" },
-  lbl: { color: C.sub, fontSize: 13, marginBottom: 6 },
-  input: { backgroundColor: C.card, borderWidth: 1, borderColor: C.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: C.text, fontSize: 16 },
-  error: { color: C.red, alignSelf: "flex-start", marginBottom: 4 },
-  info: { color: C.emerald, alignSelf: "flex-start", marginBottom: 4 },
-  primary: { backgroundColor: C.violet, borderRadius: 14, paddingVertical: 15, alignItems: "center", width: "100%", marginTop: 8 },
-  primaryTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  footer: { color: C.faint, fontSize: 12, textAlign: "center", marginTop: 20 },
-});
+const makeStyles = (c: Colors) =>
+  StyleSheet.create({
+    wrap: { flexGrow: 1, justifyContent: "center", alignItems: "center", padding: 24, gap: 4 },
+    logo: { fontSize: 34, fontWeight: "800", color: c.text, marginTop: 24 },
+    sub: { color: c.sub, marginBottom: 20 },
+    switch: { flexDirection: "row", backgroundColor: c.card, borderRadius: 12, padding: 4, marginBottom: 16, width: "100%" },
+    switchBtn: { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: "center" },
+    switchOn: { backgroundColor: c.accentSoft },
+    switchTxt: { fontWeight: "600" },
+    lbl: { color: c.sub, fontSize: 13, marginBottom: 6 },
+    input: { backgroundColor: c.card, borderWidth: 1, borderColor: c.border, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, color: c.text, fontSize: 16 },
+    error: { color: c.red, alignSelf: "flex-start", marginBottom: 4 },
+    info: { color: c.emerald, alignSelf: "flex-start", marginBottom: 4 },
+    primary: { backgroundColor: c.accent, borderRadius: 14, paddingVertical: 15, alignItems: "center", width: "100%", marginTop: 8 },
+    primaryTxt: { color: "#fff", fontWeight: "700", fontSize: 16 },
+    footer: { color: c.faint, fontSize: 12, textAlign: "center", marginTop: 20 },
+  });

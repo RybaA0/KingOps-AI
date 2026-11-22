@@ -33,7 +33,7 @@ export type Me = {
 };
 export type Model = { id: string; label: string; provider: "cloud" | "local"; vision: boolean; tools: boolean; reasoning: boolean; adminOnly?: boolean };
 export type Conversation = { id: string; title: string; updatedAt: string };
-export type Message = { id?: string; role: "user" | "assistant"; content: string; model?: string | null; thinkMs?: number | null; images?: string[] };
+export type Message = { id?: string; role: "user" | "assistant"; content: string; model?: string | null; thinkMs?: number | null; images?: string[]; tools?: { name: string; query: string }[] };
 
 // ---------- auth ----------
 export async function login(email: string, password: string): Promise<{ ok: true; user: User } | { ok: false; code?: string; message: string }> {
@@ -58,6 +58,29 @@ export async function getMe(): Promise<Me | null> {
 }
 export async function registerPushToken(token: string, platform: string): Promise<void> {
   try { await fetch(`${BASE}/api/desktop/push-token`, { method: "POST", headers: authHeaders(), body: JSON.stringify({ token, platform }) }); } catch { /* offline */ }
+}
+
+// ---------- remote servers (SSH) — the assistant can run commands on them ----------
+export type SshServer = { id: string; name: string; host: string; port: number; username: string; hasSecret: boolean; createdAt: string };
+export async function getServers(): Promise<SshServer[]> {
+  const r = await fetch(`${BASE}/api/desktop/ssh`, { headers: authHeaders(false) });
+  const j = await jsonOrNull(r);
+  return (j?.servers ?? []) as SshServer[];
+}
+export async function createServer(data: { name: string; host: string; port?: number; username: string; password?: string; privateKey?: string }): Promise<{ ok: boolean; message?: string; server?: SshServer }> {
+  const r = await fetch(`${BASE}/api/desktop/ssh`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  const j = await jsonOrNull(r);
+  return r.ok ? { ok: true, server: j?.server } : { ok: false, message: j?.error ?? "Nie udało się zapisać serwera." };
+}
+export async function deleteServer(id: string): Promise<void> {
+  try { await fetch(`${BASE}/api/desktop/ssh/${id}`, { method: "DELETE", headers: authHeaders(false) }); } catch { /* ignore */ }
+}
+export async function testServer(id: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const r = await fetch(`${BASE}/api/desktop/ssh/${id}/test`, { method: "POST", headers: authHeaders(false) });
+    const j = await jsonOrNull(r);
+    return { ok: !!j?.ok, message: j?.message ?? (r.ok ? "Połączono." : "Nie udało się połączyć.") };
+  } catch { return { ok: false, message: "Błąd połączenia." }; }
 }
 
 export async function getModels(): Promise<Model[]> {
@@ -98,7 +121,7 @@ export type ChatEvent =
   | { type: string; [k: string]: unknown };
 
 export function streamChat(
-  body: { conversationId?: string; message: string; model: string; images?: string[] },
+  body: { conversationId?: string; message: string; model: string; images?: string[]; serverId?: string },
   on: (ev: ChatEvent) => void,
 ): { abort: () => void } {
   const xhr = new XMLHttpRequest();
