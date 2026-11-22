@@ -18,9 +18,10 @@ workflows:
         script: |
           set -e
           cd ios
-          SCHEME=$(xcodebuild -list -workspace KingAi.xcworkspace -json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log((j.workspace.schemes||['KingAi'])[0])})")
+          # schemat aplikacji = nazwa jej *.xcodeproj (w ios/ jest tylko projekt aplikacji; Pods.xcodeproj siedzi w Pods/)
+          SCHEME=$(ls -d *.xcodeproj | grep -v Pods | head -1 | sed 's/\.xcodeproj$//')
           echo "Scheme: $SCHEME"
-          xcodebuild -workspace KingAi.xcworkspace -scheme "$SCHEME" -configuration Release \
+          xcodebuild -workspace "$SCHEME.xcworkspace" -scheme "$SCHEME" -configuration Release \
             -sdk iphoneos -derivedDataPath build \
             CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
