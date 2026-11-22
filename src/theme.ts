@@ -1,0 +1,15 @@
+export const C = {
+  bg: "#0b0b0f",
+  panel: "#15151c",
+  card: "#1b1b24",
+  border: "#2a2a35",
+  text: "#f4f4f6",
+  sub: "#a1a1ad",
+  faint: "#6b6b78",
+  violet: "#8b5cf6",
+  violetSoft: "rgba(139,92,246,0.15)",
+  sky: "#38bdf8",
+  emerald: "#34d399",
+  red: "#f87171",
+  amber: "#fbbf24",
+};
