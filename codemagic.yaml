@@ -1,0 +1,32 @@
+workflows:
+  ios-unsigned-ipa:
+    name: KingAi iOS – unsigned IPA
+    # Buduje NIEPODPISANY .ipa (bez konta Apple). Podpiszesz go u siebie przez Sideloadly.
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      node: 20
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: npm ci || npm install
+      - name: Expo prebuild (iOS)
+        script: npx expo prebuild --platform ios --clean
+      - name: Install CocoaPods
+        script: npx pod-install
+      - name: Build unsigned .app and package .ipa
+        script: |
+          set -e
+          cd ios
+          SCHEME=$(xcodebuild -list -workspace KingAi.xcworkspace -json | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log((j.workspace.schemes||['KingAi'])[0])})")
+          echo "Scheme: $SCHEME"
+          xcodebuild -workspace KingAi.xcworkspace -scheme "$SCHEME" -configuration Release \
+            -sdk iphoneos -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          APP=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -1)
+          echo "App: $APP"
+          mkdir -p Payload
+          cp -R "$APP" Payload/
+          zip -r KingAi.ipa Payload
+    artifacts:
+      - ios/KingAi.ipa
